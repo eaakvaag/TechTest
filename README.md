@@ -29,6 +29,43 @@ $ ./f77/convertMC
 The task consist in modifying the code to write into a separate file under `data` the event number and the relevant information for the stable particles only.
 The output file should be identical to the reference file `data/dimuon_91_stable.txt`. Note that the lines have not the same format.
 
+### Implementation 
+The original program reads the input file line by line, prints each line to the terminal, and counts the number of events by checking for lines starting with `E`.
+
+This implementation was extended to instead parse the input and write a new output file `data/dimuon_91_stable_task1.txt`, containing the filtered relevant information for stable particles, matching the format of the reference file `data/dimuon_91_stable.txt`.
+
+The main modifications are:
+
+- An output file is opened and written to instead of printing to standard output.
+- Each line is inspected to distinguish between event (`E`) and particle (`P`) records.
+- For event lines, the event number is extracted and written in the required format.
+- For particle lines, the kinematic variables are read and only written if the particle has `STATUS = 1` (stable particles).
+
+The formatting and number of digits in the refrence file depends on the magnitude so using the same format descriptor for each kinematic object in each event, i.e `,5(1x,G24.16E3)` did not work. I extracted the following structure from the refrence file: 
+
+- `VAL == 0.0`  
+  Values are written in fixed-point notation with **16 digits after the decimal point**.
+
+- `|VAL| < 0.1`  
+  Values are written in scientific notation with **16 digits after the decimal point**.
+
+- `0.1 ≤ |VAL| < 1.0`  
+  Values are written in fixed-point notation with **17 digits after the decimal point**.
+
+- `1 ≤ |VAL| < 10.0`  
+  Values are written in fixed-point notation with **16 digits after the decimal point**.
+
+- `|VAL| ≥ 10.0`  
+  Values are written in fixed-point notation with **15 digits after the decimal point**. The last trailing zero is also removed to match the refrence file formatting. (No kinematic values ≥ 100)
+
+This formatting is explicitly implemented in the `FMT` function in `convertMC.F`, which applies the magnitude-dependent rules described above.
+
+To validate the output `data/dimuon_91_stable_task1.txt`, I used the `diff` command. The comparison returns no differences:
+
+```bash
+diff data/dimuon_91_stable_task1.txt data/dimuon_91_stable.txt
+```
+
 ## Task 2
 Under `cpp/`, `Event.h` defines a simplified Event class which you van load in `ROOT`:
 ```
@@ -39,8 +76,40 @@ root [1] .q
 ```
 The task consists in writing a ROOT macro that reads the output of the previous program, i.e. `data/dimuon_91_stable.txt ` and creates a `ROOT TTree` of `Event` entries and saves it to a file.
 
+### Implementation
+Created a new macro `cpp/buildTree.C` that reads the input text file `data/dimuon_91_stable_task1.txt` and constructs a `TTree` named `events`, where each entry corresponds to one `Event` object. The output is written to the file `data/dimuon_91.root`:
+
+```bash
+root -l -b -q 'cpp/buildTree.C' 
+Info in <buildTree>: Wrote 10000 events to data/dimuon_91.root
+```
+
+The macro processes the file line by line:
+
+- If `E:` line:
+  - the previous event is written to the tree (if any)
+  - the current `Event` object is cleared and assigned a new event ID
+- If `P:` line:
+  - a `Particle` object is constructed from the kinematics
+  - it is added to the current `Event`
+
+A single `Event` object is reused during the loop, and `tree->Fill()` stores a copy of its content for each completed event. 
+
+After the loop, the final event is written to the tree.
+
+
 ## Task 3
 This task consist in writing a script or macro to visualise the sum of the muon energies. You can use whatever tool you want. Put the macro in the top directory.
+
+### Implementation 
+Created a plotter/visualiser in Python that reads `data/dimuon_91.root` using `uproot` and `awkward`, and accesses the particle kinematics in the `events` tree. The muon energies in each event are summed and plotted with `matplotlib` in a histogram with a range centred around the Z mass (91.2 GeV). 
+```bash
+python plot_muon_energies.py
+Done! Plot saved to plots/sum_muon_energy.png
+```
+#### Result:
+
+![Sum of muon energies](plots/sum_muon_energy.png)
 
 ---
 ## Notes
