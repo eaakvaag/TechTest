@@ -37,7 +37,7 @@ This implementation was extended to instead parse the input and write a new outp
 The main modifications are:
 
 - An output file is opened and written to instead of printing to standard output.
-- Each line is inspected to distinguish between event (`E`) and particle (`P`) records.
+- Each line is inspected to distinguish between event (`E`) and particle (`P`).
 - For event lines, the event number is extracted and written in the required format.
 - For particle lines, the kinematic variables are read and only written if the particle has `STATUS = 1` (stable particles).
 
@@ -56,7 +56,7 @@ The formatting and number of digits in the refrence file depends on the magnitud
   Values are written in fixed-point notation with **16 digits after the decimal point**.
 
 - `|VAL| ≥ 10.0`  
-  Values are written in fixed-point notation with **15 digits after the decimal point**. The last trailing zero is also removed to match the refrence file formatting. (No kinematic values ≥ 100)
+  Values are written in fixed-point notation with **15 digits after the decimal point**. The last trailing zero is also removed to match the refrence file formatting. 
 
 This formatting is explicitly implemented in the `FMT` function in `convertMC.F`, which applies the magnitude-dependent rules described above.
 
